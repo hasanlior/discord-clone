@@ -1,0 +1,266 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #313338;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Arka plan efektleri */
+body::before {
+    content: '';
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(88, 101, 242, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(235, 69, 158, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    animation: backgroundFloat 20s ease-in-out infinite;
+}
+
+@keyframes backgroundFloat {
+    0%, 100% { transform: translate(-5%, -5%) rotate(-2deg); }
+    50% { transform: translate(5%, 5%) rotate(2deg); }
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 480px;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-box {
+    background: #2B2D31;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: boxAppear 0.5s ease-out;
+}
+
+@keyframes boxAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.auth-brand {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 24px;
+    background: linear-gradient(90deg, #5865F2, #EB459E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: brandFloat 3s ease-in-out infinite;
+}
+
+@keyframes brandFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.auth-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.error-message {
+    background: rgba(237, 66, 69, 0.1);
+    color: #ED4245;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid rgba(237, 66, 69, 0.2);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #B9BBBE;
+    text-transform: uppercase;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background: #1E1F22;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #5865F2;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.25);
+}
+
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    background: #5865F2;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.auth-button:hover {
+    background: #4752C4;
+    transform: translateY(-1px);
+}
+
+.auth-button:active {
+    transform: translateY(0);
+}
+
+.auth-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #B9BBBE;
+}
+
+.auth-link a {
+    color: #5865F2;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.auth-link a:hover {
+    color: #4752C4;
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0;
+    }
+    
+    .auth-box {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+} 
+
+/* Mevcut CSS'e eklenecek yeni stiller */
+
+.auth-subtitle {
+    color: #B9BBBE;
+    font-size: 16px;
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-message i {
+    font-size: 16px;
+}
+
+.auth-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.auth-button i {
+    font-size: 16px;
+}
+
+/* Form grupları için ek stiller */
+.form-group input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0;
+    }
+    
+    .auth-box {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+}
+
+/* Animasyon iyileştirmeleri */
+.form-group input {
+    transform: translateY(0);
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+    transform: translateY(-1px);
+}
+
+.auth-form {
+    animation: formAppear 0.5s ease-out 0.2s both;
+}
+
+@keyframes formAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+} 

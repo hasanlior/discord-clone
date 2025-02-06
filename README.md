@@ -38,6 +38,16 @@ This project is **strictly proprietary**. You are **not allowed** to use, modify
 ## Contribution
 Contributions are **not** allowed. This project is for private use only.
 
+## Planned Features
+- **Advanced role system**
+- **Voice Chat**
+- **Video Chat**
+- **Screen Sharing**
+- **Badges**
+- **Friend System**
+- **Private Messaging**
+- **Advanced Server Settings**
+
 ## Contact
 For any inquiries, reach out via **GitHub Issues** or email at **destek@duygula.com**.
 

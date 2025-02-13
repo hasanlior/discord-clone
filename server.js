@@ -44,7 +44,7 @@ class GameState {
             { x: 997, y: 200, width: 8, height: 8, isGoalPost: true },    // Sağ üst yatay
             { x: 997, y: 400, width: 8, height: 8, isGoalPost: true }     // Sağ alt yatay
         ];
-        this.players = new Map();
+        this.players = new Map(); // Oyuncu verilerini tutan map
         this.scores = { red: 0, blue: 0 };
         this.gameStarted = false;
         this.lastUpdate = Date.now();
@@ -85,21 +85,36 @@ class GameState {
         return [{ x: 500, y: 50 }]; // İzleyici
     }
 
-    addPlayer(username, team) {
+    addPlayer(username, team, cosmetics = {}) {
         const teamPlayers = Array.from(this.players.values()).filter(p => p.team === team);
         if (teamPlayers.length >= this.maxPlayers[team]) return false;
 
         const positions = this.getTeamStartPositions(team);
         const pos = positions[teamPlayers.length] || positions[0];
 
+        // Kostüm bilgilerini dahil ederek oyuncu ekle
         this.players.set(username, {
             x: pos.x,
             y: pos.y,
             team: team,
             username: username,
-            radius: 20
+            radius: 20,
+            cosmeticId: cosmetics.cosmeticId || null,
+            cosmeticClass: cosmetics.cosmeticClass || null
         });
+        
+        console.log(`Added player ${username} with cosmetics:`, cosmetics);
         return true;
+    }
+    
+    // Oyuncu kostümünü güncelleme fonksiyonu
+    updatePlayerCosmetic(username, cosmeticId, cosmeticClass) {
+        const player = this.players.get(username);
+        if (player) {
+            player.cosmeticId = cosmeticId;
+            player.cosmeticClass = cosmeticClass;
+            this.broadcastGameState();
+        }
     }
 
     checkGoal() {
@@ -126,31 +141,22 @@ class GameState {
     }
 
     resetBall(scoringTeam) {
-        // Oyuncuları pozisyonlarına yerleştir
-        this.players.forEach((player, username) => {
-            const positions = this.getTeamStartPositions(player.team);
-            const teamPlayers = Array.from(this.players.values())
-                .filter(p => p.team === player.team);
-            const pos = positions[teamPlayers.indexOf(player)] || positions[0];
-            
-            player.x = pos.x;
-            player.y = pos.y;
-            player.radius = 20; // Çarpışma için yarıçap
-        });
+        // Topu ortala
+        this.ball = { 
+            x: 500, 
+            y: 300, 
+            vx: 0, 
+            vy: 0,
+            radius: 10,
+            friction: 0.98
+        };
 
-        // 3 saniye sonra topu ortala ve fiziği geri yükle
+
+        // Animasyon bitince gol durumunu resetle
         setTimeout(() => {
-            this.ball = { 
-                x: 500, 
-                y: 300, 
-                vx: 0, 
-                vy: 0,
-                radius: 10,
-                friction: 0.98
-            };
-            this.goalAnimation = false; // Animasyon bitti
-            this.checkCollisions(); // Çarpışmaları yeniden kontrol et
-            this.broadcastGameState(this.roomId);
+            this.goalAnimation = false;
+            this.checkCollisions();
+            broadcastGameState(this.roomId);
         }, 3000);
     }
 
@@ -254,23 +260,49 @@ class GameState {
     }
 
     resetPositions() {
-        // Top ve oyuncuları başlangıç pozisyonlarına yerleştir
+        // Top pozisyonunu resetle
         this.ball = {
-            x: 500, y: 300,
-            vx: 0, vy: 0,
+            x: 500,
+            y: 300,
+            vx: 0,
+            vy: 0,
             radius: 10,
             friction: 0.98
         };
 
-        // Takım pozisyonlarını ayarla
+        // Oyuncuları başlangıç pozisyonlarına gönder
+        const startPositions = {
+            red: [
+                { x: 150, y: 200 },
+                { x: 150, y: 300 },
+                { x: 150, y: 400 }
+            ],
+            blue: [
+                { x: 850, y: 200 },
+                { x: 850, y: 300 },
+                { x: 850, y: 400 }
+            ]
+        };
+
+        let redIndex = 0;
+        let blueIndex = 0;
+
         this.players.forEach((player, username) => {
-            const positions = this.getTeamStartPositions(player.team);
-            const teamPlayers = Array.from(this.players.values())
-                .filter(p => p.team === player.team);
-            const pos = positions[teamPlayers.indexOf(player)] || positions[0];
-            player.x = pos.x;
-            player.y = pos.y;
+            if (player.team === 'red') {
+                const pos = startPositions.red[redIndex % 3];
+                player.x = pos.x;
+                player.y = pos.y;
+                redIndex++;
+            } else if (player.team === 'blue') {
+                const pos = startPositions.blue[blueIndex % 3];
+                player.x = pos.x;
+                player.y = pos.y;
+                blueIndex++;
+            }
         });
+
+        // Tüm oyunculara resetPosition eventi gönder
+        this.broadcastMessage('resetPositions');
     }
 
     getStartPosition(team) {
@@ -437,7 +469,6 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
-            console.log('\x1b[34m%s\x1b[0m', `📨 Received message: ${data.type} from ${data.username || 'unknown'}`);
 
             switch (data.type) {
                 case 'join':
@@ -492,6 +523,41 @@ wss.on('connection', (ws, req) => {
                         });
                     }
                     break;
+
+                case 'collision':
+                    if (currentRoom) {
+                        broadcastToRoom(currentRoom, {
+                            type: 'collision',
+                            target: data.target,
+                            pushX: data.pushX,
+                            pushY: data.pushY
+                        });
+                    }
+                    break;
+
+                case 'ping':
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                    break;
+
+                case 'updateCosmetic':
+                    if (currentRoom && playerData) {
+                        const gameState = gameStates.get(data.roomId);
+                        if (gameState) {
+                            const player = gameState.players.get(playerData.username);
+                            if (player) {
+                                player.cosmeticId = data.cosmeticId;
+                                player.cosmeticClass = data.cosmeticClass;
+                                // Tüm oyunculara bildir
+                                broadcastToRoom(currentRoom, {
+                                    type: 'playerCosmeticUpdate',
+                                    username: playerData.username,
+                                    cosmeticId: data.cosmeticId,
+                                    cosmeticClass: data.cosmeticClass
+                                });
+                            }
+                        }
+                    }
+                    break;
             }
         } catch (error) {
             console.error('\x1b[31m%s\x1b[0m', '❌ Error processing message:', error.message);
@@ -510,6 +576,7 @@ wss.on('connection', (ws, req) => {
     });
 });
 
+// handleJoin fonksiyonunu güncelle
 function handleJoin(ws, data) {
     if (!rooms.has(data.roomId)) {
         rooms.set(data.roomId, new Map());
@@ -520,7 +587,11 @@ function handleJoin(ws, data) {
     room.set(data.username, ws);
 
     const gameState = gameStates.get(data.roomId);
-    const success = gameState.addPlayer(data.username, data.team);
+    // Kostüm bilgilerini koruyarak oyuncuyu ekle
+    const success = gameState.addPlayer(data.username, data.team, {
+        cosmeticId: data.cosmeticId,
+        cosmeticClass: data.cosmeticClass
+    });
     
     if (!success) {
         ws.send(JSON.stringify({
@@ -528,6 +599,19 @@ function handleJoin(ws, data) {
             message: 'Team is full'
         }));
         return;
+    }
+
+    // Oyuncunun kostüm bilgisini ayarla
+    const player = gameState.players.get(data.username);
+    if (player) {
+        if (data.cosmeticId) {
+            player.cosmeticId = data.cosmeticId;
+            player.cosmeticClass = data.cosmeticClass;
+            console.log(`Player ${data.username} joined with cosmetic:`, {
+                id: data.cosmeticId,
+                class: data.cosmeticClass
+            });
+        }
     }
 
     broadcastGameState(data.roomId);
@@ -624,12 +708,17 @@ function broadcastGameState(roomId) {
     const gameState = gameStates.get(roomId);
     
     if (room && gameState) {
+        // Debug log ekle
         const state = {
             type: 'gameState',
             ball: gameState.ball,
             players: Array.from(gameState.players.entries()).map(([username, data]) => ({
                 username,
-                ...data
+                x: data.x,
+                y: data.y,
+                team: data.team,
+                cosmeticId: data.cosmeticId,
+                cosmeticClass: data.cosmeticClass // cosmeticClass'ı da ekleyelim
             })),
             scores: gameState.scores,
             gameStarted: gameState.gameStarted,
@@ -645,12 +734,24 @@ function broadcastGameState(roomId) {
 }
 
 // Game loop
+const TICK_RATE = 64;
+const TICK_INTERVAL = 1000 / TICK_RATE;
+let lastTick = Date.now();
+
 setInterval(() => {
-    gameStates.forEach((state) => {
-        state.update();
-        broadcastGameState(state.roomId);
-    });
-}, 1000 / 60); // 60 FPS
+    const now = Date.now();
+    const delta = now - lastTick;
+    
+    if (delta >= TICK_INTERVAL) {
+        lastTick = now - (delta % TICK_INTERVAL);
+        
+        // Oyun durumunu güncelle
+        gameStates.forEach((state) => {
+            state.update();
+            broadcastGameState(state.roomId);
+        });
+    }
+}, 1); // Sık kontrol et ama sadece tick rate'e göre güncelle
 
 // HTTP sunucusunu başlat
 const PORT = process.env.PORT || 3000; // 8080 yerine 3000 kullan
